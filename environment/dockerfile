@@ -1,0 +1,55 @@
+FROM centos:latest
+MAINTAINER eltano <ghcetraro@gmail.com>
+
+ENV NAME_SERVICE=pepe.com
+ENV NAME_DOMAIN=pepe.com
+ENV APACHE_RUN_USER default
+ENV APACHE_RUN_GROUP apache
+
+# Install apache and ssl
+RUN yum install -y httpd mod_ssl
+
+#user add
+RUN adduser default
+
+#erase default
+RUN rm -fr /etc/httpd/conf.d/welcome.conf
+RUN rm -fr /etc/httpd/conf.d/README
+
+#out logs
+RUN ln -sf /dev/stdout /var/log/httpd/access.log
+RUN ln -sf /dev/stderr /var/log/httpd/error.log
+
+#
+RUN mkdir -p /etc/httpd/ssl/
+RUN mkdir -p /var/www/site/
+
+#config
+COPY apache.conf /etc/httpd/conf.d/
+COPY ssl.conf /etc/httpd/conf.d/
+COPY httpd.conf /etc/httpd/conf/
+
+COPY localhost.crt /etc/httpd/ssl/localhost.crt
+COPY localhost.key /etc/httpd/ssl/localhost.key
+
+COPY localhost.crt /etc/pki/tls/certs/localhost.crt
+COPY localhost.key /etc/pki/tls/private/localhost.key
+
+
+RUN echo 
+#replca domain $NAME_DOMAIN
+RUN sed -i "s/dominio.com/$NAME_DOMAIN/g" /etc/httpd/conf.d/apache.conf
+
+# copy index
+COPY index.html /var/www/site/
+
+# Expose apache.
+EXPOSE 7080 7443
+
+
+ADD run-httpd.sh /run-httpd.sh
+RUN chmod -v +x /run-httpd.sh
+
+CMD ["/run-httpd.sh"]
+
+
